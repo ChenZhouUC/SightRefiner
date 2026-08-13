@@ -1,0 +1,15 @@
+[project]
+name = "sightrefiner"
+version = "0.1.0"
+description = "相机画面问题检测与矫正算法库 - 遮挡检测、鱼眼矫正、模糊检测"
+requires-python = ">=3.12.7"
+dependencies = [
+    "numpy>=2.5.2",
+    "opencv-python-headless>=5.0.0.93",
+    "matplotlib>=3.9.0",
+    "openpyxl>=3.1.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,4 +1,55 @@
-data/*/*.jpg
-data/*/*.png
-*__pycache__*
-cpp_api/*.out
+.DS_Store
+.venv/
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+
+# Test data
+data/*/Exposed/
+data/*/Occluded/
+data/**/*.png
+data/**/*.jpg
+data/**/*.jpeg
+data/**/*.webp
+data/**/*.bmp
+data/**/*.tif
+data/**/*.tiff
+data/**/*.gif
+data/fisheye/meta.json
+data/**/report/
+data/**/reports/
+data/report/
+data/reports/
+data/**/screenshots/
+
+# Generated outputs
+plots/
+output_*.png
+REPORT*.html
+REPORT*.md
+*.json
+!pyproject.toml
+
+# Temporary files
+*.log
+*.tmp
+*.npz
+*.xlsx
+
+# Local legacy API experiments
+cpp_api/
+go_api/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+*.out
+*.exe
+*.o
+*.a
