@@ -7,6 +7,16 @@ dist/
 build/
 
 # Test data
+# Each module keeps local test artifacts under data/<module>/.
+# Concrete samples and generated test reports stay local.
+data/*/images/
+data/*/raw/
+data/*/report/
+data/*/batches/*/images/
+data/*/batches/*/raw/
+data/*/batches/*/report/
+data/*/batches/*/reports/
+data/*/batches/*/screenshots/
 data/*/Exposed/
 data/*/Occluded/
 data/**/*.png
@@ -17,12 +27,32 @@ data/**/*.bmp
 data/**/*.tif
 data/**/*.tiff
 data/**/*.gif
-data/fisheye/meta.json
 data/**/report/
 data/**/reports/
 data/report/
 data/reports/
 data/**/screenshots/
+data/**/*.csv
+data/**/*.tsv
+data/**/*.jsonl
+data/**/*.ndjson
+data/**/*.parquet
+data/**/*.npy
+data/**/*.npz
+data/**/*.mp4
+data/**/*.mov
+data/**/*.avi
+data/**/*.mkv
+
+# Module research docs must be single-file HTML with embedded base64 images.
+sightrefiner/*/research/**/*.png
+sightrefiner/*/research/**/*.jpg
+sightrefiner/*/research/**/*.jpeg
+sightrefiner/*/research/**/*.webp
+sightrefiner/*/research/**/*.bmp
+sightrefiner/*/research/**/*.tif
+sightrefiner/*/research/**/*.tiff
+sightrefiner/*/research/**/*.gif
 
 # Generated outputs
 plots/
@@ -30,6 +60,15 @@ output_*.png
 REPORT*.html
 REPORT*.md
 *.json
+
+# Schemas and ontology definitions describe structure, so they are trackable.
+!**/*.schema.json
+!**/schema.json
+!**/schema/**/*.json
+!**/schemas/**/*.json
+!**/ontology*.json
+!**/ontology/**/*.json
+!**/ontologies/**/*.json
 !pyproject.toml
 
 # Temporary files

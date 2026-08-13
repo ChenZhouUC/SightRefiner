@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sightrefiner.local/schemas/fisheye/image_meta.schema.json",
+  "title": "SightRefiner Fisheye Standard Image Metadata",
+  "description": "Metadata for standard fisheye test inputs under data/fisheye/batches/<batch_id>/images/meta.json.",
+  "type": "object",
+  "minProperties": 1,
+  "propertyNames": {
+    "type": "string",
+    "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*\\.(png|jpg|jpeg|webp|bmp|tif|tiff)$"
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/sample"
+  },
+  "$defs": {
+    "sample": {
+      "type": "object",
+      "required": ["site", "camera", "circle", "source"],
+      "additionalProperties": true,
+      "properties": {
+        "site": {
+          "$ref": "#/$defs/entity"
+        },
+        "camera": {
+          "$ref": "#/$defs/entity"
+        },
+        "circle": {
+          "type": "object",
+          "required": ["cx", "cy", "r"],
+          "additionalProperties": false,
+          "properties": {
+            "cx": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cy": {
+              "type": "number",
+              "minimum": 0
+            },
+            "r": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "required": ["file", "bbox"],
+          "additionalProperties": true,
+          "properties": {
+            "file": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Relative path from the batch root, normally under raw/."
+            },
+            "bbox": {
+              "$ref": "#/$defs/bbox"
+            }
+          }
+        }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "bbox": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    }
+  }
+}

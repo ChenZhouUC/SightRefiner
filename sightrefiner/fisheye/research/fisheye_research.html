@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>鱼眼矫正方案调研纪要</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --paper: #ffffff;
+        --text: #1c2430;
+        --muted: #5d6876;
+        --border: #d9dee7;
+        --accent: #1f6feb;
+        --accent-soft: #e8f1ff;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        line-height: 1.65;
+      }
+
+      main {
+        width: min(980px, calc(100% - 32px));
+        margin: 32px auto;
+        padding: 40px;
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 12px 30px rgb(25 33 44 / 8%);
+      }
+
+      h1,
+      h2 {
+        line-height: 1.25;
+        margin: 0 0 16px;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+
+      h2 {
+        margin-top: 34px;
+        padding-top: 22px;
+        border-top: 1px solid var(--border);
+        font-size: 22px;
+      }
+
+      p,
+      ul,
+      table {
+        margin: 14px 0;
+      }
+
+      .meta {
+        padding: 14px 16px;
+        background: var(--accent-soft);
+        border-left: 4px solid var(--accent);
+        color: var(--muted);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f0f3f8;
+      }
+
+      code {
+        padding: 2px 5px;
+        border-radius: 4px;
+        background: #eef1f5;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 0.92em;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 720px) {
+        main {
+          width: auto;
+          margin: 0;
+          padding: 24px 18px;
+          border: 0;
+          border-radius: 0;
+        }
+
+        table {
+          display: block;
+          overflow-x: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>鱼眼矫正方案调研纪要（边缘端客流统计场景）</h1>
+      <p class="meta">
+        调研时间：2026-08。场景：顶装 360°
+        鱼眼（圆形成像、FOV≈180°+）为主、少量壁装；约束：无法逐相机棋盘格标定，边缘端逐帧成本必须极低，输出供通用行人检测/计数模型使用。
+      </p>
+
+      <h2>1. 相机模型</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>映射</th>
+            <th>适用性</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>等距投影 equidistant (f-theta)</strong></td>
+            <td>ρ = f·θ</td>
+            <td><strong>监控鱼眼镜头的事实标准</strong>，DW Spectrum / Nx Witness / NVIDIA VPI 等的默认选项</td>
+          </tr>
+          <tr>
+            <td>等立体角 equisolid</td>
+            <td>ρ = 2f·sin(θ/2)</td>
+            <td>摄影镜头常见</td>
+          </tr>
+          <tr>
+            <td>体视 stereographic</td>
+            <td>ρ = 2f·tan(θ/2)</td>
+            <td>保角，CCTV 少见</td>
+          </tr>
+          <tr>
+            <td>Kannala-Brandt 多项式</td>
+            <td>ρ = k₁θ+k₂θ³+…</td>
+            <td>OpenCV <code>cv2.fisheye</code> 即此模型，可退化为上述任意一种</td>
+          </tr>
+          <tr>
+            <td>Mei 统一模型 / Scaramuzza</td>
+            <td>—</td>
+            <td>OpenCV contrib <code>cv::omnidir</code>；&gt;180° 或需精细校准时用</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        <strong>结论：</strong>镜头规格未知时，默认 equidistant + FOV=180°（f =
+        R/(π/2)），误差集中在最终会被丢弃的边缘区；FOV 作为 profile 中的单一可调参数。
+      </p>
+
+      <h2>2. 无标定物自动校准</h2>
+      <ul>
+        <li>
+          <strong>成像圆检测</strong>（圆心 + 半径）：最鲁棒、信息量最大的第一步。阈值分割 → 轮廓 → 最小二乘圆拟合 →
+          非线性精化。业界有专利化的同款流程（US 11699216 “Automatic fisheye camera calibration for video
+          analytics”）。注意：部分相机上下裁切成像圆，要按弧/椭圆拟合。
+        </li>
+        <li>
+          <strong>Plumb-line / 直线自校准</strong
+          >（可选精化）：优化畸变参数使场景直线（货架、地砖、门框）变直。经典方法包括 Devernay &amp; Faugeras 2001（有
+          IPOL 复现）、Rosten &amp; Loveland（角向 Hough 直方图熵最小化，单帧自然图像鲁棒）、Xue et al. CVPR 2019（CNN
+          检测畸变直线）。注意 ~180° 视场时直线约束应在视球上表述（大圆约束）。
+        </li>
+        <li>
+          <strong>深度学习单图校准</strong>（离线服务器侧一次性）：DeepCalib（2018，老）、GeoCalib（ECCV
+          2024，维护好）、AnyCalib（2025，闭式拟合多种模型，SOTA）。多以合成畸变训练，对真实顶装鱼眼泛化需验证；适合作为初始化/交叉校验，不适合作为唯一来源。
+        </li>
+      </ul>
+
+      <h2>3. 输出投影（业界做法）</h2>
+      <p>
+        厂商（Axis、Hikvision、Hanwha、Vivotek、Milestone、Genetec 等）标准模式包括原始鱼眼 O、单全景 1P、双 180° 全景
+        2P、四分屏 4R（4×~90° 虚拟透视）、ePTZ。
+      </p>
+      <ul>
+        <li>厂商自己的<strong>在机分析（含人数统计）大多直接跑在原始鱼眼图上</strong>；全景/四分屏主要是给人看的。</li>
+        <li>
+          面向通用检测模型的文献结论：<strong>圆柱/全景展开 &gt; 直线透视</strong>（保 FOV，汽车域 +4 mAP
+          级别）；<strong>多路虚拟透视</strong>能让行人外观最接近 COCO 训练分布。
+        </li>
+        <li>全景展开的固有缺陷：天顶（正下方）拉丝、0°/360° 接缝会切人，需要重叠边和跨缝 NMS。</li>
+      </ul>
+
+      <h2>4. 不矫正、直接在鱼眼上检测的路线</h2>
+      <p>
+        RAPiD（旋转框行人检测，CVPR-W 2020）在摆拍数据集 AP50 96%+，但真实场景 WEPDTOF 掉到约
+        72%；许可证禁止商用，且已停止维护。后继方案包括 LOAF 数据集 + 检测器（ICCV
+        2023）、PDAT（2025，先转全景再检测）。
+      </p>
+      <p>
+        <strong>选择 dewarp 的理由：</strong>现成计数模型即插即用、下游 tracking/ReID 全按直立人设计、固定 LUT 后 dewarp
+        开销几乎为零、无许可证风险。
+      </p>
+
+      <h2>5. 边缘端运行时</h2>
+      <ul>
+        <li>
+          <code>cv2.remap</code> + 预计算
+          <strong>CV_16SC2 定点 LUT</strong>（<code>cv2.convertMaps</code>），把检测器输入分辨率直接折叠进 LUT，remap
+          成本随小输出、不随大输入。
+        </li>
+        <li>
+          实测参考：Jetson AGX Orin CPU 1080p remap ≈ 9ms（满频 5ms），CUDA ≈ 2.5ms；RK3588 级 A76 预估
+          5–15ms@1080p；树莓派 GPU 方案（remapvid）1080p 25–30fps。
+        </li>
+        <li>
+          硬件 dewarp：Rockchip ISP <strong>FEC</strong> 网格 LUT（RV1126/RK3588，RGA 不能做网格 warp）、NVIDIA
+          <strong>VPI LDC/Remap</strong>（可跑 VIC 定点引擎，零 CPU/GPU 占用）、Ambarella IPC SoC 内置 dewarp
+          引擎。先用可移植 remap，profiling 不达标再上平台加速。
+        </li>
+      </ul>
+
+      <h2>6. 可复用开源</h2>
+      <p>
+        GeoCalib（cvg/GeoCalib）、OpenCV fisheye/omnidir、dscamera（双球模型参考实现）、FisheyeWarping /
+        unWrap（顶装全景展开）、fisheye_window（虚拟 PTZ
+        模板）、RAPiD（仅供基准，禁商用）。目前没有现成的端到端“监控鱼眼自动校准 +
+        dewarp”开源方案，需要自行组装，本项目即是。
+      </p>
+
+      <h2>关键引用</h2>
+      <ul>
+        <li>
+          OpenCV fisheye (Kannala-Brandt):
+          <a href="https://docs.opencv.org/4.x/db/d58/group__calib3d__fisheye.html"
+            >https://docs.opencv.org/4.x/db/d58/group__calib3d__fisheye.html</a
+          >
+        </li>
+        <li>
+          自动校准专利（流程参考）:
+          <a href="https://patents.google.com/patent/US11699216">https://patents.google.com/patent/US11699216</a>
+        </li>
+        <li>
+          Rosten &amp; Loveland plumb-line:
+          <a href="https://arxiv.org/abs/0810.4426">https://arxiv.org/abs/0810.4426</a>
+        </li>
+        <li>
+          GeoCalib: <a href="https://github.com/cvg/GeoCalib">https://github.com/cvg/GeoCalib</a> · AnyCalib:
+          <a href="https://arxiv.org/pdf/2503.12701">https://arxiv.org/pdf/2503.12701</a>
+        </li>
+        <li>
+          RAPiD: <a href="https://arxiv.org/abs/2005.11623">https://arxiv.org/abs/2005.11623</a> · WEPDTOF:
+          <a href="https://vip.bu.edu/projects/vsns/cossy/datasets/wepdtof/"
+            >https://vip.bu.edu/projects/vsns/cossy/datasets/wepdtof/</a
+          >
+        </li>
+        <li>
+          BU 顶装鱼眼行人检测综述（2024）:
+          <a href="https://www.frontiersin.org/journals/imaging/articles/10.3389/fimag.2024.1387543/full"
+            >https://www.frontiersin.org/journals/imaging/articles/10.3389/fimag.2024.1387543/full</a
+          >
+        </li>
+        <li>
+          圆柱 vs 直线透视 mAP 对比:
+          <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12196831/"
+            >https://pmc.ncbi.nlm.nih.gov/articles/PMC12196831/</a
+          >
+        </li>
+        <li>
+          NVIDIA VPI LDC:
+          <a href="https://docs.nvidia.com/vpi/algo_ldc.html">https://docs.nvidia.com/vpi/algo_ldc.html</a> · Rockchip
+          RGA 限制:
+          <a href="https://github.com/airockchip/librga/blob/main/docs/Rockchip_Developer_Guide_RGA_EN.md"
+            >https://github.com/airockchip/librga/blob/main/docs/Rockchip_Developer_Guide_RGA_EN.md</a
+          >
+        </li>
+        <li>
+          Axis dewarp 模式:
+          <a href="https://developer.axis.com/vapix/network-video/dewarped-views/"
+            >https://developer.axis.com/vapix/network-video/dewarped-views/</a
+          >
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>

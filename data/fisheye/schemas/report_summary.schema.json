@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sightrefiner.local/schemas/fisheye/report_summary.schema.json",
+  "title": "SightRefiner Fisheye Report Summary",
+  "description": "Structured output from tools/fisheye/make_report.py under data/fisheye/batches/<batch_id>/report/summary.json.",
+  "type": "object",
+  "required": ["n_samples", "n_fallback", "benchmark", "samples"],
+  "additionalProperties": true,
+  "properties": {
+    "n_samples": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "n_fallback": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "benchmark": {
+      "type": "object",
+      "required": ["input", "outputs", "lut_bake_s", "lut_npz_mb", "remap_ms_per_frame_total", "host"],
+      "additionalProperties": true,
+      "properties": {
+        "input": {
+          "type": "string"
+        },
+        "outputs": {
+          "type": "string"
+        },
+        "lut_bake_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "lut_npz_mb": {
+          "type": "number",
+          "minimum": 0
+        },
+        "remap_ms_per_frame_total": {
+          "type": "number",
+          "minimum": 0
+        },
+        "host": {
+          "type": "string"
+        }
+      }
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sample_result"
+      }
+    }
+  },
+  "$defs": {
+    "sample_result": {
+      "type": "object",
+      "required": [
+        "name",
+        "site",
+        "camera",
+        "r_px",
+        "center_delta_px",
+        "radius_delta_px",
+        "calib_fallback",
+        "dimensions"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*\\.(png|jpg|jpeg|webp|bmp|tif|tiff)$"
+        },
+        "site": {
+          "$ref": "#/$defs/entity"
+        },
+        "camera": {
+          "$ref": "#/$defs/entity"
+        },
+        "r_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "center_delta_px": {
+          "type": "number",
+          "minimum": 0
+        },
+        "radius_delta_px": {
+          "type": "number",
+          "minimum": 0
+        },
+        "calib_fallback": {
+          "type": "boolean"
+        },
+        "dimensions": {
+          "type": "object",
+          "required": ["source", "panorama", "view0", "view1", "view2", "view3"],
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "$ref": "#/$defs/size"
+            },
+            "panorama": {
+              "$ref": "#/$defs/size"
+            },
+            "view0": {
+              "$ref": "#/$defs/size"
+            },
+            "view1": {
+              "$ref": "#/$defs/size"
+            },
+            "view2": {
+              "$ref": "#/$defs/size"
+            },
+            "view3": {
+              "$ref": "#/$defs/size"
+            }
+          }
+        },
+        "assets": {
+          "type": "object",
+          "description": "Relative paths from report/ to individual images saved before the composite sheet is built.",
+          "required": ["source", "panorama", "view0", "view1", "view2", "view3"],
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "$ref": "#/$defs/report_path"
+            },
+            "panorama": {
+              "$ref": "#/$defs/report_path"
+            },
+            "view0": {
+              "$ref": "#/$defs/report_path"
+            },
+            "view1": {
+              "$ref": "#/$defs/report_path"
+            },
+            "view2": {
+              "$ref": "#/$defs/report_path"
+            },
+            "view3": {
+              "$ref": "#/$defs/report_path"
+            }
+          }
+        }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "size": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "integer",
+          "exclusiveMinimum": 0
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "report_path": {
+      "type": "string",
+      "pattern": "^views/[A-Za-z0-9_.-]+/(source|panorama|view0|view1|view2|view3)\\.png$"
+    }
+  }
+}

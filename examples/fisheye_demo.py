@@ -59,7 +59,9 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("用法: python fisheye_demo.py <鱼眼图像路径>")
-        print("示例: python fisheye_demo.py ../data/fisheye/310_34th_St_cam01.png")
+        print(
+            "示例: python fisheye_demo.py ../data/fisheye/batches/2026-08-10_pilot_camera_scrnsht/images/310_34th_St_cam01.png"
+        )
         sys.exit(1)
 
     image_path = sys.argv[1]

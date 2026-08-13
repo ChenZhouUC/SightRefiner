@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Extract fisheye camera sample crops from the VMS screenshots embedded in sample/*.xlsx.
+"""Preprocess xlsx VMS screenshots into the standard fisheye test input.
+
+This is a batch-preprocessing helper, not the public test-data contract.
+The public contract starts after preprocessing, at:
+  data/fisheye/batches/<batch>/images/*.png
+  data/fisheye/batches/<batch>/images/meta.json
 
 The xlsx contains one sheet per store; each sheet embeds one screenshot of a
 multi-camera VMS layout. Camera tiles sit on a near-black canvas, separated by
@@ -8,11 +13,18 @@ then classify each tile as fisheye (circular image, black corners, one sharp
 circular edge at a consistent radius) vs standard rectangular video.
 
 Outputs:
-  data/screenshots/<store>.png          full screenshot per store
-  data/fisheye/<store>_cam<k>.png       tile crop per detected fisheye camera
-  data/fisheye/meta.json                per-crop circle center/radius (crop coords)
+  data/fisheye/batches/<batch>/raw/<store>.png
+                                        full screenshot per store
+  data/fisheye/batches/<batch>/images/<store>_cam<k>.png
+                                        tile crop per detected fisheye camera
+  data/fisheye/batches/<batch>/images/meta.json
+                                        per-crop circle center/radius (crop coords)
 
 These extracted samples are local test data and are intentionally gitignored.
+
+Usage:
+  uv run python data/fisheye/batches/2026-08-10_pilot_camera_scrnsht/preprocess.py
+  uv run python data/fisheye/batches/2026-08-10_pilot_camera_scrnsht/preprocess.py <xlsx_path>
 """
 
 import json
@@ -28,6 +40,7 @@ MIN_TILE = 150  # px, min tile side to consider
 MIN_RADIUS = 70  # px, min fisheye circle radius
 BORDER_PAD = 9  # px, ignore tile selection frames drawn by the VMS
 EDGE_DROP = 15  # min outward brightness drop that counts as the circle edge
+BATCH_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Human-reviewed rejects: tiles the detector accepts but visual review showed
 # to be rectangular videos whose shadow pattern mimics an inscribed circle.
@@ -216,11 +229,9 @@ def detect_fisheye_tiles(img):
     return found
 
 
-def main():
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    xlsx = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, "sample", "pilot camera scrnsht.xlsx")
-    shot_dir = os.path.join(root, "data", "screenshots")
-    fe_dir = os.path.join(root, "data", "fisheye")
+def extract_from_xlsx(xlsx, module_data_dir):
+    shot_dir = os.path.join(module_data_dir, "raw")
+    fe_dir = os.path.join(module_data_dir, "images")
     os.makedirs(shot_dir, exist_ok=True)
     os.makedirs(fe_dir, exist_ok=True)
 
@@ -236,11 +247,13 @@ def main():
             x0, y0, x1, y1 = t["box"]
             crop = img[y0:y1, x0:x1]
             name = f"{store}_cam{k:02d}.png"
+            camera_id = f"cam{k:02d}"
             cv2.imwrite(os.path.join(fe_dir, name), crop)
             meta[name] = {
-                "store": store,
+                "site": {"id": store},
+                "camera": {"id": camera_id},
+                "source": {"file": os.path.join("raw", f"{store}.png"), "bbox": [x0, y0, x1, y1]},
                 "circle": {"cx": t["cx"] - x0, "cy": t["cy"] - y0, "r": t["r"]},
-                "source_bbox": [x0, y0, x1, y1],
             }
             total += 1
         print(f"{store}: {len(tiles)} fisheye tiles")
@@ -248,6 +261,12 @@ def main():
     with open(os.path.join(fe_dir, "meta.json"), "w") as f:
         json.dump(meta, f, indent=2)
     print(f"total: {total} fisheye samples -> {fe_dir}")
+
+
+def main():
+    xlsx = sys.argv[1] if len(sys.argv) > 1 else os.path.join(BATCH_DIR, "raw", "pilot_camera_scrnsht.xlsx")
+    print(f"batch={os.path.basename(BATCH_DIR)} preprocess=xlsx_vms_grid raw_path={xlsx}")
+    extract_from_xlsx(xlsx, BATCH_DIR)
 
 
 if __name__ == "__main__":
