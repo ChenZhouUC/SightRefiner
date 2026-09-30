@@ -30,16 +30,20 @@
 
 ## 环境要求
 
-- Python >= 3.12.7
+- 运行版本由 `.python-version` 固定为 Python 3.12.7；解释器须预先显式安装，本机使用 pyenv 的 3.12.7
 - 使用 `uv` 进行依赖管理
+- 项目禁止 uv 自动下载或使用 uv 管理的 Python；`requires-python` 仅声明包的兼容范围
 
 ## 快速开始
 
 ### 安装依赖
 
 ```bash
-uv sync
+uv python find  # 应为预先安装的 Python 3.12.7
+uv sync --locked
 ```
+
+重建时先备份旧 `.venv`，再执行 `uv venv --python "$HOME/.pyenv/versions/$(cat .python-version)/bin/python" .venv` 和 `uv sync --locked`。其他机器先显式安装 `.python-version` 指定的版本即可，不需要复制本机的 pyenv 绝对路径。
 
 ### 遮挡检测示例
 
@@ -106,6 +110,8 @@ SightRefiner/
 
 - 项目总 README 放在仓库根目录 `README.md`，需要进入 Git。
 - 不同模块的调研文档放在各自模块目录下的 `research/`，例如 `sightrefiner/fisheye/research/`。调研文档必须使用单文件 HTML；如果包含图片，图片必须以 `data:image/...;base64,...` 嵌入 HTML，不提交单独图片文件。
+  - `fisheye/research/fisheye_research.html`：产业方案、开源实现、边缘硬件加速对比。
+  - `fisheye/research/fisheye_math.html`：成像模型、自动校准可辨识性、视角选取与盲区、全景度量性质、LUT 误差预算的数学剖析。
 - 不同模块的测试素材和测试报告放在 `data/<module>/batches/<batch_id>/` 下，并按 `raw/`、`images/`、`report/` 三类组织。这三类目录不进入 Git。
 - 批次名建议用日期开头并附来源或目的，例如 `2026-08-10_pilot_camera_scrnsht`、`2026-08-20_store_retest_round2`。
 - 原始数据不定义公共输入协议。每个 batch 可以自带自己的预处理方式，把任意 `raw/` 形态转换为标准测试输入即可。
